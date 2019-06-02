@@ -5,6 +5,7 @@ class ListaLinearEnc {
     this.qtd = 0;
     this.playersNames = [];
     this.invertido = false;
+    this.max = 10;
   }
   //Ok
   tahVazia() {
@@ -16,20 +17,27 @@ class ListaLinearEnc {
   }
 
   tiraCarta() {
-    let array = [1, 3, 9, 12];
-    let rng = parseInt(Math.random() * (4 - 0) + 0);
+    let array = [0, 1, 3, 9, 12, 13];
+    let rng = parseInt(Math.random() * (6 - 0) + 0);
     return array[rng];
   }
 
   executaCarta(carta, ptAtual) {
     switch (carta) {
+      case 0:
+        this.addtext(`\nImpedido de Jogar por 3 Rodadas`);
+        return this.carta0(ptAtual);
       case 1:
         this.addtext(`\nPula o próximo Jogador`);
         return this.carta1(ptAtual);
         break;
       case 12:
         this.addtext(`\nInverte o Jogo`);
-        return this.carta12(ptAnterior, ptAtual);
+        return this.carta12(ptAtual);
+        break;
+      case 13:
+        this.addtext(`\nPula N jogadores`);
+        return this.carta13(ptAtual);
         break;
       case 3:
         this.addtext(`\nElimina o Terceiro Jogador Seguinte`);
@@ -37,7 +45,7 @@ class ListaLinearEnc {
         break;
       case 9:
         this.addtext(`\nElimina o Jogador Anterior`);
-        return this.carta9(ptAnterior, ptAtual);
+        return this.carta9(ptAtual);
         break;
     }
   }
@@ -57,26 +65,38 @@ class ListaLinearEnc {
     console.log("aqui");
   }
 
+  //Com as funções acima torna-se mais fácil mostrar no console os jogadores restantes
+  mostraJogadores() {
+    let sentido = this.invertido ? "Anti-Horário" : "Horário";
+    this.addtext(`Sentido: ${sentido}`);
+    this.addtext(` `);
+    this.addtext(`\nJogadores restantes: `);
+    this.addtext(`\n${this.playersNames}\n`);
+    this.addtext(` `);
+  }
+
   rodada() {
-    let ptAux = this.ptLista;
-    console.log(ptAux);
-    let ptAux2 = ptAux;
-    console.log(ptAux2);
-    let qtd = 0;
+    this.jogoMain(this.ptLista);
+  }
 
-    //Pega o anterior do primeiro da lista posso tornar uma funcao ?
-    while (ptAux2.proxNodo.chave != this.ptLista.chave) {
-      ptAux2 = ptAux2.proxNodo;
-    }
-    let ptAnterior = ptAux2;
-
-    let cont = 1;
+  jogadas(i, ponteiro) {
+    let ptAux = ponteiro;
+    let j = i;
     while (this.qtd > 1) {
-      this.addtext(`\n<Rodada ${cont}>\n`);
-      let i = 1;
-      let qtdRod = this.qtd;
-      while (ptAux.chave != this.ptLista && this.qtd >= 1) {
-        this.addtext(`\n<Jogada ${i}>`);
+      this.addtext(`\n<Jogada ${j}>`);
+      if (ptAux.flag > 0) {
+        this.addtext(
+          `\nO Jogador ${ptAux.chave} está impedido por mais ${
+            ptAux.flag
+          } jogada(s).`
+        );
+        ptAux.flag--;
+        ptAux = this.invertido ? ptAux.anteNodo : ptAux.proxNodo;
+        this.addtext(`\n</Jogada ${j}>\n`);
+        this.addtext(`\n`);
+        j++;
+        this.mostraJogadores();
+      } else {
         this.addtext(`\nA vez do Jogador ${ptAux.chave}:`);
         confirm(
           "A vez é de: " +
@@ -84,24 +104,60 @@ class ListaLinearEnc {
             "\nPressione Ok para retirar uma carta."
         );
 
-        let obj = this.executaCarta(this.tiraCarta(), ptAnterior, ptAux);
+        //Carta retirada
+        let obj = this.executaCarta(this.tiraCarta(), ptAux);
         this.addtext(`\nTirou a Carta ${obj.carta}:`);
+        //Definição do Rumo do Jogo
         if (obj != null) {
-          ptAnterior = obj.ant;
           ptAux = obj.fa;
         } else {
-          ptAnterior = ptAux;
           ptAux = ptAux.proxNodo;
         }
-        this.addtext(`\n</Jogada ${i}>\n`);
-        i++;
+        this.addtext(`\n</Jogada ${j}>\n`);
+        this.addtext(`\n`);
+        j++;
         this.mostraJogadores();
       }
+    }
+    return ptAux;
+  }
+
+  jogoMain(inicio) {
+    let ptAux = inicio;
+    let cont = 1;
+    while (this.qtd > 1) {
+      this.addtext(`\n<Rodada ${cont}>\n`);
+      let i = 1;
+      ptAux = this.jogadas(i, ptAux);
       this.addtext(`\n</Rodada ${cont}>\n`);
       cont++;
     }
     this.addtext(`\nVencedor é ${ptAux.chave}`);
   }
+  //Impede Jogador
+  carta0(ptAtual) {
+    if (this.invertido) {
+      ptAtual.flag = 2;
+      confirm(
+        "Carta 0: O jogador está impedido." +
+          "\nO jogador(a) " +
+          ptAtual.chave +
+          " está Impedido."
+      );
+      return { fa: ptAtual.anteNodo, carta: 0 };
+    } else {
+      //Qtd de Jogadas Fora
+      ptAtual.flag = 2;
+      confirm(
+        "Carta 0: O jogador está impedido." +
+          "\nO jogador(a) " +
+          ptAtual.chave +
+          " está Impedido."
+      );
+      return { fa: ptAtual.proxNodo, carta: 0 };
+    }
+  }
+
   //Pula o proximo jogador e o proximo jogador passa a ser o prox do prox.
   carta1(ptAtual) {
     let futuroAtual = null;
@@ -128,21 +184,36 @@ class ListaLinearEnc {
       );
       return { fa: futuroAtual, carta: 1 };
     }
-    /*
-    let anterior;
-    
-    futuroAtual = ptAtual.proxNodo.proxNodo;
-    anterior = ptAtual.proxNodo;
-    confirm(
-      "Carta 2: Pula o jogador seguinte." +
-        "\nO jogador(a) " +
-        anterior.chave +
-        " será pulado(a)."
-    );
-    return { fa: futuroAtual, ant: anterior, carta: 1 };*/
   }
-  // Elimina o jogador atual
-  carta12(ptAnterior, ptAtual) {
+  // Inverte o Jogo
+  carta12(ptAtual) {
+    //Verifica se já está invertido
+    if (this.invertido) {
+      //se sim o jogo reverte pro sentido horario
+      this.invertido = false;
+
+      confirm(
+        "Carta 12: O jogo inverte." +
+          "\nO jogador(a) " +
+          ptAtual.proxNodo.chave +
+          " será o próximo a Jogar"
+      );
+      //Passando o proxNodo como prox jogador
+      return { fa: ptAtual.proxNodo, carta: 12 };
+    } else {
+      //se nao for inverte pro anti-horario
+      this.invertido = true;
+
+      confirm(
+        "Carta 12: O jogo inverte." +
+          "\nO jogador(a) " +
+          ptAtual.anteNodo.chave +
+          " será o próximo a Jogar"
+      );
+      //Mandando o anteNodo com prox jogador
+      return { fa: ptAtual.anteNodo, carta: 12 };
+    }
+    /*
     ptAnterior.proxNodo = ptAtual.proxNodo;
     if (ptAtual.chave == this.ptLista.chave) {
       this.ptLista = ptAtual.proxNodo;
@@ -155,12 +226,46 @@ class ListaLinearEnc {
         ptAtual.chave +
         " foi removido(a)."
     );
-    return { fa: ptAtual.proxNodo, ant: ptAnterior, carta: 12 };
+    return { fa: ptAtual.proxNodo, carta: 12 };*/
   }
 
+  // Pula qnts Quiser
+  carta13(ptAtual) {
+    let num = parseInt(window.prompt("Digite quantos jogadores Deseja Pular:"));
+    if (this.invertido) {
+      let i = 0;
+      while (i < num) {
+        ptAtual = ptAtual.anteNodo;
+        i++;
+      }
+      confirm(
+        "Carta 13: O jogo inverte." +
+          "\nO jogador(a) " +
+          ptAtual.anteNodo.chave +
+          " será o próximo a Jogar"
+      );
+      return { fa: ptAtual.anteNodo, carta: 13 };
+    } else {
+      let i = 0;
+      while (i < num) {
+        ptAtual = ptAtual.proxNodo;
+        i++;
+      }
+      confirm(
+        "Carta 13: O jogo inverte." +
+          "\nO jogador(a) " +
+          ptAtual.proxNodo.chave +
+          " será o próximo a Jogar"
+      );
+      return { fa: ptAtual.proxNodo, carta: 13 };
+    }
+  }
+
+  //Remove o Terceiro
   carta3(ptAtual) {
     let futuroAtual = null;
     if (this.invertido) {
+      console.log("Terceiro Jogador Anti-Horario");
       //Codigo Invertido (Anti-Horario)
       futuroAtual = ptAtual.anteNodo;
 
@@ -168,6 +273,13 @@ class ListaLinearEnc {
         this.ptLista = futuroAtual.anteNodo.anteNodo;
       }
 
+      this.removeVetor(this.buscaLinear(futuroAtual.anteNodo.chave));
+      confirm(
+        "Carta 3: Remova o terceiro jogador seguinte, a partir do jogador atual." +
+          "\nO jogador(a) " +
+          futuroAtual.anteNodo.chave +
+          " foi removido(a)."
+      );
       //Se nao, nao muda-se nada e se prossegue com as associacoes
       //Preciso que ponteiro(anteNodo) do nodo proximo aponte para o objeto
       //apontado no (anteNodo) do Nodo a ser removido
@@ -176,8 +288,10 @@ class ListaLinearEnc {
       //Aponte para o FuturoAtual para manter a lista Duplamente Encadeada
       futuroAtual.anteNodo.proxNodo = futuroAtual;
 
+      this.qtd--;
       return { fa: futuroAtual, carta: 3 };
     } else {
+      console.log("Terceiro Jogador Horario");
       //Sentido Horario
       //Define o proximo jogador
       futuroAtual = ptAtual.proxNodo;
@@ -187,6 +301,13 @@ class ListaLinearEnc {
         this.ptLista = futuroAtual.proxNodo.proxNodo;
       }
 
+      this.removeVetor(this.buscaLinear(futuroAtual.proxNodo.chave));
+      confirm(
+        "Carta 3: Remova o terceiro jogador seguinte, a partir do jogador atual." +
+          "\nO jogador(a) " +
+          futuroAtual.proxNodo.chave +
+          " foi removido(a)."
+      );
       //Se nao, nao muda-se nada e se prossegue com as associacoes
       //Preciso que ponteiro(proxNodo) do nodo proximo aponte para o objeto
       //apontado no (proxNodo) do Nodo a ser removido
@@ -195,61 +316,63 @@ class ListaLinearEnc {
       //Aponte para o FuturoAtual para manter a lista Duplamente Encadeada
       futuroAtual.proxNodo.anteNodo = futuroAtual;
 
+      this.qtd--;
       return { fa: futuroAtual, carta: 3 };
     }
-    /*
-    
-    let anterior;
-    let anteriorRemovido;
-    let removido;
-    //Aqui define o curso normal do jogo
-    futuroAtual = ptAtual.proxNodo;
-    anterior = ptAtual;
-    //Aqui define as sobreposicoes de remover o terceiro
+  }
+  //Remove o Anterior
+  carta9(ptAtual) {
+    if (this.invertido) {
+      console.log("Anterior Jogador Anti-Horario");
+      let antDoAnt = ptAtual.proxNodo.proxNodo;
 
-    anteriorRemovido = futuroAtual;
-    removido = anteriorRemovido.proxNodo;
-    if (removido.chave == this.ptLista.chave) {
-      this.ptLista = removido.proxNodo;
+      //Verifica se o jogador a ser removido é igual ao ponteiro da lista
+      if (ptAtual.proxNodo.chave == this.ptLista.chave) {
+        this.ptLista = ptAtual;
+      }
+
+      this.removeVetor(this.buscaLinear(antDoAnt.anteNodo.chave));
+
+      confirm(
+        "Carta 9: Remova o jogador anterior." +
+          "\nO jogador(a) " +
+          antDoAnt.anteNodo.chave +
+          " foi removido(a)."
+      );
+      antDoAnt.anteNodo = ptAtual;
+      ptAtual.proxNodo = antDoAnt;
+
+      this.qtd--;
+      console.log(ptAtual.anteNodo);
+      return { fa: ptAtual.anteNodo, carta: 9 };
+    } else {
+      console.log("Anterior Jogador Horario");
+      //Sentido Horário
+      let antDoAnt = ptAtual.anteNodo.anteNodo;
+
+      //Verifica se o jogador a ser removido é igual ao ponteiro da lista
+      if (ptAtual.anteNodo.chave == this.ptLista.chave) {
+        this.ptLista = ptAtual;
+      }
+
+      this.removeVetor(this.buscaLinear(antDoAnt.proxNodo.chave));
+
+      confirm(
+        "Carta 9: Remova o jogador anterior." +
+          "\nO jogador(a) " +
+          antDoAnt.proxNodo.chave +
+          " foi removido(a)."
+      );
+
+      antDoAnt.proxNodo = ptAtual;
+      ptAtual.anteNodo = antDoAnt;
+      this.qtd--;
+      console.log(ptAtual.proxNodo);
+      return { fa: ptAtual.proxNodo, carta: 9 };
     }
-    anteriorRemovido.proxNodo = removido.proxNodo;
-    //Aqui remove 1 da rodada
-    this.qtd--;
-    this.removeVetor(this.buscaLinear(removido.chave));
-    confirm(
-      "Carta 5: Remova o terceiro jogador seguinte, a partir do jogador atual." +
-        "\nO jogador(a) " +
-        removido.chave +
-        " foi removido(a)."
-    );
-    return { fa: futuroAtual, ant: anterior, carta: 3 }; */
   }
 
-  carta9(ptAnterior, ptAtual) {
-    let antDoAnt;
-    let ptaux1 = ptAtual;
-    //Aqui pega o anterior do anterior para remover
-    while (ptaux1.proxNodo.chave != ptAnterior.chave) {
-      ptaux1 = ptaux1.proxNodo;
-    }
-    if (ptAnterior.chave == this.ptLista.chave) {
-      this.ptLista = ptAtual;
-    }
-    //linkar o seu prox nodo ao ptAtual
-    antDoAnt = ptaux1;
-    this.removeVetor(this.buscaLinear(ptAnterior.chave));
-    antDoAnt.proxNodo = ptAtual;
-    confirm(
-      "Carta 7: Remova o jogador anterior." +
-        "\nO jogador(a) " +
-        ptAnterior.chave +
-        " foi removido(a)."
-    );
-    this.qtd--;
-    return { fa: ptAtual.proxNodo, ant: ptAtual, carta: 9 };
-  }
-
-  //OK vou manter
+  //Inserção Duplamente Encadeada
   insereNohFim(nodo) {
     let ptAux = null;
     if (this.tahVazia() == true) {
@@ -260,13 +383,13 @@ class ListaLinearEnc {
       ptAux = this.ptLista;
       //Faz a Tarefa de Percorrer até o "final" da lista onde o prox seja null
       ptAux = this.percorreInsere(ptAux);
-      if (this.qtd < 9) {
+      if (this.qtd < this.max - 1) {
         //Aqui ocorre o tratamento e duplo encadeamento
         this.Encadeia(ptAux, nodo);
         //Aqui aumenta o tamanho de qtd
         this.qtd++;
       }
-      if (this.qtd == 9) {
+      if (this.qtd == this.max - 1) {
         //Aqui ocorre o duplo encadeamento fechando a lista tornando-a circular
         this.Encircular(ptAux, nodo);
         this.qtd++;
@@ -317,12 +440,6 @@ class ListaLinearEnc {
   removeVetor(index) {
     console.log(index);
     this.playersNames.splice(index, 1);
-  }
-
-  //Com as funções acima torna-se mais fácil mostrar no console os jogadores restantes
-  mostraJogadores() {
-    addtext(`\nJogadores restantes: `);
-    addtext(`\n${this.playersNames}`);
   }
 
   //Aqui eu tenho que universalizar essa busca de uma maneira inteligente.

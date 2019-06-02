@@ -3,5 +3,6 @@ class Nodo {
     this.chave = nome;
     this.proxNodo = null;
     this.anteNodo = null;
+    this.flag = 0;
   }
 }
